@@ -42,7 +42,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       }
       setLoading(false);
       queueFlashToast("アカウントを作成しました");
-      router.push("/");
+      router.push(afterLogin);
       router.refresh();
       return;
     }

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
+import { isMemberContentApi, isMemberContentPage } from "@/lib/auth/protected-routes";
 import { isWorkspacePath } from "@/lib/workspace/slug";
 
 function isAdminApi(pathname: string) {
@@ -34,15 +35,18 @@ export async function middleware(request: NextRequest) {
   }
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
-  const needsAuth = isCmsPage(pathname) || isAdminApi(pathname);
+  const needsMemberAuth = isMemberContentPage(pathname) || isMemberContentApi(pathname);
+  const needsAuth = isCmsPage(pathname) || isAdminApi(pathname) || needsMemberAuth;
   if (!needsAuth) return response;
 
   const config = getSupabasePublicConfig();
   if (!config) {
-    if (isAdminPage(pathname)) {
-      return NextResponse.redirect(new URL("/login", request.url));
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const login = new URL("/login", request.url);
+    login.searchParams.set("next", pathname + request.nextUrl.search);
+    return NextResponse.redirect(login);
   }
 
   const supabase = createServerClient(config.url, config.anonKey, {
@@ -65,11 +69,12 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (isAdminApi(pathname)) {
+    if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const login = new URL("/login", request.url);
-    login.searchParams.set("next", pathname);
+    const returnTo = pathname + request.nextUrl.search;
+    login.searchParams.set("next", returnTo);
     return NextResponse.redirect(login);
   }
 
@@ -105,6 +110,22 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
+    "/api/lessons/:path*",
+    "/api/seminars/:path*",
+    "/api/favorites/:path*",
+    "/api/search",
+    "/courses/:path*",
+    "/lessons/:path*",
+    "/seminars/:path*",
+    "/categories/:path*",
+    "/search/:path*",
+    "/favorites/:path*",
+    "/courses",
+    "/lessons",
+    "/seminars",
+    "/categories",
+    "/search",
+    "/favorites",
     "/:username/lessons/:path*",
     "/:username/categories/:path*",
     "/:username/seminars/:path*",
