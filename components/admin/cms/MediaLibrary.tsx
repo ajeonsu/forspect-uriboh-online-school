@@ -27,6 +27,7 @@ function friendlyMediaLoadError(raw: string): string {
 
 export function MediaLibrary() {
   const { push: toast } = useAdminToast();
+  const { confirm: askConfirm } = useConfirm();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -58,7 +59,7 @@ export function MediaLibrary() {
       return;
     }
     if (
-      !(await confirm(
+      !(await askConfirm(
         withAdminConfirm("Delete this file from storage?", {
           title: "Delete file",
           tone: "danger",

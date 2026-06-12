@@ -15,12 +15,13 @@ export function UserRoleSelect({
 }) {
   const router = useRouter();
   const { push: toast } = useAdminToast();
+  const { confirm: askConfirm } = useConfirm();
   const [role, setRole] = useState(currentRole);
   const [msg, setMsg] = useState("");
 
   async function onChange(next: string) {
     if (
-      !(await confirm(
+      !(await askConfirm(
         withAdminConfirm(`Change this user's role to "${next}"?`, { title: "Change role" }),
       ))
     ) {

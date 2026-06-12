@@ -9,6 +9,7 @@ import { useState } from "react";
 export function GenreArchiveButton({ genreId, isActive }: { genreId: string; isActive: boolean }) {
   const router = useRouter();
   const { push: toast } = useAdminToast();
+  const { confirm: askConfirm } = useConfirm();
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
@@ -16,7 +17,7 @@ export function GenreArchiveButton({ genreId, isActive }: { genreId: string; isA
       ? `Archive genre "${genreId}"? It will be hidden from the public site.`
       : `Activate genre "${genreId}"?`;
     if (
-      !(await confirm(
+      !(await askConfirm(
         withAdminConfirm(msg, {
           title: isActive ? "Archive category" : "Activate category",
           tone: isActive ? "danger" : "default",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NewsletterExportButton } from "@/components/admin/NewsletterExportButton";
 import { AdminCard, AdminPageHeader, AdminTableWrap } from "@/components/admin/ui/AdminChrome";
 import { requireEditor } from "@/lib/auth";
 import { createPrivilegedServerClient } from "@/lib/supabase/privileged";
@@ -31,11 +32,7 @@ export default async function AdminNewsletterPage() {
     <>
       <AdminPageHeader
         title="Newsletter subscribers"
-        actions={
-          <a href="/api/admin/newsletter/export" className="btn btn--primary">
-            Export CSV
-          </a>
-        }
+        actions={<NewsletterExportButton />}
       />
 
       <AdminCard>

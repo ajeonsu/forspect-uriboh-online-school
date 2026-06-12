@@ -15,13 +15,14 @@ export function MediaUploadField({
   onUploaded: (path: string, url: string) => void;
 }) {
   const { push: toast } = useAppToast();
+  const { confirm: askConfirm } = useConfirm();
   const [msg, setMsg] = useState("");
 
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (
-      !(await confirm(
+      !(await askConfirm(
         withAdminConfirm(`Upload "${file.name}"?`, { title: "Upload image" }),
       ))
     ) {
