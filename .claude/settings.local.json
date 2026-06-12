@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -noE '\"[a-z-]+/[0-9]+\": `' index.html)",
+      "Bash(awk -F: '$1<=5565{k=$0} END{print \"key:\",k}')",
+      "Read(//private/tmp/**)"
+    ]
+  }
+}

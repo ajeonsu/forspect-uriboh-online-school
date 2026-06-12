@@ -1,0 +1,41 @@
+{
+  "name": "uriboh",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "db:import:dry": "tsx --env-file=.env.local scripts/import-static-content.ts --dry-run",
+    "db:import": "tsx --env-file=.env.local scripts/import-static-content.ts",
+    "db:validate": "tsx --env-file=.env.local scripts/validate-import.ts",
+    "db:validate:db": "tsx --env-file=.env.local scripts/validate-import.ts --db",
+    "db:bootstrap-admin": "tsx --env-file=.env.local scripts/bootstrap-admin.ts",
+    "db:seed-seminars": "tsx --env-file=.env.local scripts/seed-seminars.ts",
+    "db:reset-engagement": "tsx --env-file=.env.local scripts/reset-lesson-engagement.ts"
+  },
+  "dependencies": {
+    "@blocknote/core": "^0.51.4",
+    "@blocknote/mantine": "^0.51.4",
+    "@blocknote/react": "^0.51.4",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.8",
+    "isomorphic-dompurify": "^2.22.0",
+    "next": "^15.3.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
+    "eslint": "^9.27.0",
+    "eslint-config-next": "^15.3.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

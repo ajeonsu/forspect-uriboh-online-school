@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>URIBOH — redirecting…</title>
+  <script>
+    (function () {
+      var hash = location.hash || "";
+      function go(path) { location.replace(path); }
+      var lesson = hash.match(/^#\/?g\/([\w-]+)\/(\d+)/);
+      if (lesson) return go("/lessons/" + lesson[1] + "/" + lesson[2]);
+      var genre = hash.match(/^#\/?g\/([\w-]+)/);
+      if (genre) {
+        if (genre[1] === "ai") return go("/lessons/ai-chatgpt");
+        return go("/lessons/" + genre[1]);
+      }
+      if (/^#\/?seminars/.test(hash)) return go("/seminars");
+      if (/^#\/?courses/.test(hash)) return go("/courses");
+      if (/^#\/?categories/.test(hash)) return go("/categories");
+      if (/^#\/?favorites/.test(hash)) return go("/favorites");
+      if (/^#\/?search/.test(hash)) {
+        var q = (hash.match(/[?&]q=([^&]+)/) || [])[1];
+        return go(q ? "/search?q=" + encodeURIComponent(decodeURIComponent(q.replace(/\+/g, " "))) : "/search");
+      }
+      go("/");
+    })();
+  </script>
+</head>
+<body>
+  <p>Redirecting…</p>
+</body>
+</html>
