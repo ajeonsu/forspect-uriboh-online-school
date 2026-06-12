@@ -1,14 +1,21 @@
 "use client";
 
+import { useAppToast } from "@/components/AppToast";
 import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export function LoginAuthErrorNotice() {
   const err = useSearchParams().get("error");
-  if (err !== "auth_callback") return null;
+  const { push: toast } = useAppToast();
 
-  return (
-    <p style={{ marginBottom: 16, fontSize: 13, color: "#E11D48" }}>
-      Googleログインに失敗しました。SupabaseのGoogle設定とリダイレクトURLを確認して、もう一度お試しください。
-    </p>
-  );
+  useEffect(() => {
+    if (err === "auth_callback") {
+      toast(
+        "Googleログインに失敗しました。SupabaseとGoogleのリダイレクトURLを確認してください。",
+        "error",
+      );
+    }
+  }, [err, toast]);
+
+  return null;
 }

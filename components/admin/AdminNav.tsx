@@ -1,24 +1,26 @@
 "use client";
 
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links: {
-  href: string;
+  path: string;
   label: string;
   exact?: boolean;
   external?: boolean;
   adminOnly: boolean;
 }[] = [
-  { href: "/admin", label: "Dashboard", exact: true, adminOnly: false },
-  { href: "/admin/categories", label: "Categories", adminOnly: false },
-  { href: "/admin/lessons", label: "Lessons", adminOnly: false },
-  { href: "/admin/seminars", label: "Seminars", adminOnly: false },
-  { href: "/admin/newsletter", label: "Newsletter", adminOnly: false },
-  { href: "/admin/analytics", label: "Analytics", adminOnly: false },
-  { href: "/admin/media", label: "Media", adminOnly: false },
-  { href: "/admin/users", label: "Users", adminOnly: true },
-  { href: "/", label: "← Site", external: true, adminOnly: false },
+  { path: "", label: "Dashboard", exact: true, adminOnly: false },
+  { path: "/categories", label: "Categories", adminOnly: false },
+  { path: "/lessons", label: "Lessons", adminOnly: false },
+  { path: "/seminars", label: "Seminars", adminOnly: false },
+  { path: "/newsletter", label: "Newsletter", adminOnly: true },
+  { path: "/analytics", label: "Analytics", adminOnly: false },
+  { path: "/media", label: "Media", adminOnly: false },
+  { path: "/users", label: "Users", adminOnly: true },
+  { path: "/", label: "← Site", external: true, adminOnly: false },
 ];
 
 function isActive(pathname: string, href: string, exact?: boolean) {
@@ -29,6 +31,7 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 
 export function AdminNav({ role }: { role: "admin" | "user" }) {
   const pathname = usePathname();
+  const cmsBase = useCmsBase();
   const isAdmin = role === "admin";
 
   return (
@@ -37,11 +40,12 @@ export function AdminNav({ role }: { role: "admin" | "user" }) {
         {links
           .filter((l) => isAdmin || !l.adminOnly)
           .map((l) => {
-          const active = l.external ? false : isActive(pathname, l.href, l.exact);
+          const href = l.external ? "/" : l.exact ? cmsBase : cmsHref(cmsBase, l.path);
+          const active = l.external ? false : isActive(pathname, href, l.exact);
           return (
             <Link
-              key={l.href}
-              href={l.href}
+              key={l.label}
+              href={href}
               className={`admin-nav__link${active ? " is-active" : ""}${l.external ? " admin-nav__link--muted" : ""}`}
             >
               {l.label}

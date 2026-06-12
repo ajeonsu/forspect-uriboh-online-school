@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 
 type Asset = {
   id: string;
@@ -12,6 +14,16 @@ type Asset = {
   mime_type: string | null;
   created_at: string;
 };
+
+function friendlyMediaLoadError(raw: string): string {
+  if (/SUPABASE_SERVICE_ROLE_KEY|service role/i.test(raw)) {
+    return "The media library is not available right now. Please try again later or contact the site administrator.";
+  }
+  if (/media_assets|does not exist|schema cache/i.test(raw)) {
+    return "The media library could not be loaded. Please contact the site administrator.";
+  }
+  return raw.length > 120 ? "Could not load the media library. Please refresh and try again." : raw;
+}
 
 export function MediaLibrary() {
   const { push: toast } = useAdminToast();
@@ -45,7 +57,17 @@ export function MediaLibrary() {
       toast("Only uploaded files can be deleted here", "error");
       return;
     }
-    if (!window.confirm("Delete this file from storage?")) return;
+    if (
+      !(await confirm(
+        withAdminConfirm("Delete this file from storage?", {
+          title: "Delete file",
+          tone: "danger",
+          confirmLabel: "Delete",
+        }),
+      ))
+    ) {
+      return;
+    }
     const res = await fetch(`/api/admin/media/${id}`, { method: "DELETE" });
     if (!res.ok) {
       toast("Delete failed", "error");
@@ -67,12 +89,17 @@ export function MediaLibrary() {
       {loading && !hasLoaded ? (
         <p className="admin-empty">Loading…</p>
       ) : loadError ? (
-        <p className="admin-form-alert">{loadError}</p>
-      ) : assets.length === 0 ? (
-        <p className="admin-empty">
-          No images in the library. Upload above, or run migration <code>005_cms_editorial.sql</code> if
-          uploads fail.
+        <p className="admin-form-alert" role="alert">
+          {friendlyMediaLoadError(loadError)}
         </p>
+      ) : assets.length === 0 ? (
+        <div className="admin-empty" style={{ display: "grid", gap: 8 }}>
+          <p style={{ margin: 0 }}>No images in your library yet.</p>
+          <p className="admin-table__muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+            Choose a file above and click Upload. Images you add here can be used for lesson thumbnails,
+            seminar covers, and the content editor.
+          </p>
+        </div>
       ) : (
         <div className="admin-media-grid">
           {assets.map((a) => (

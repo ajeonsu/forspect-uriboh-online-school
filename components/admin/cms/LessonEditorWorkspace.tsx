@@ -8,7 +8,11 @@ import { MediaPickerModal } from "@/components/admin/MediaPickerModal";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { VisualContentEditor } from "@/components/admin/VisualContentEditor";
 import type { LessonEditorContent } from "@/components/admin/VisualContentEditor.types";
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
 import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm, type ConfirmRequest } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { AdminCard } from "@/components/admin/ui/AdminChrome";
 import { buildTocAndHtml, estimateReadingMinutes } from "@/lib/article";
 import { LessonToc } from "@/components/LessonToc";
@@ -49,6 +53,8 @@ export function LessonEditorWorkspace({
 }) {
   const router = useRouter();
   const { push: toast } = useAdminToast();
+  const { confirm } = useConfirm();
+  const cmsBase = useCmsBase();
   const lessonId = initial?.id;
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -152,7 +158,7 @@ export function LessonEditorWorkspace({
       }
       return j.lesson ?? null;
     },
-    [form.title, lessonId, payload, router, toast],
+    [cmsBase, form.title, lessonId, payload, router, toast],
   );
 
   useEffect(() => {
@@ -183,8 +189,9 @@ export function LessonEditorWorkspace({
   const previewToc = buildTocAndHtml(form.content_html);
   const readMin = estimateReadingMinutes(form.content_html);
 
-  async function action(path: string, success: string) {
+  async function action(path: string, success: string, confirmOpts: ConfirmRequest) {
     if (!lessonId) return;
+    if (!(await confirm(confirmOpts))) return;
     const res = await fetch(path, { method: "POST" });
     const j = (await res.json()) as { error?: string };
     if (!res.ok) {
@@ -198,7 +205,7 @@ export function LessonEditorWorkspace({
   return (
     <AdminCard className="lesson-editor">
       <div className="lesson-editor__breadcrumb">
-        <Link href="/admin/lessons">← Lessons</Link>
+        <Link href={cmsHref(cmsBase, "/lessons")}>← Lessons</Link>
         <span className={`admin-save-pill admin-save-pill--${saveState}`}>
           {saveState === "saving" && "Saving…"}
           {saveState === "saved" && "Saved"}
@@ -217,13 +224,34 @@ export function LessonEditorWorkspace({
             Live preview
           </button>
           {lessonId && (
-            <Link href={`/admin/lessons/${lessonId}/preview`} className="btn" target="_blank">
+            <Link href={cmsHref(cmsBase, `/lessons/${lessonId}/preview`)} className="btn" target="_blank">
               Public preview
             </Link>
           )}
         </div>
         <div className="lesson-editor__actions">
-          <button type="button" className="btn" disabled={saveState === "saving"} onClick={() => void saveLesson()}>
+          <button
+            type="button"
+            className="btn"
+            disabled={saveState === "saving"}
+            onClick={() => {
+              void (async () => {
+                if (
+                  !(await confirm(
+                    withAdminConfirm(
+                      lessonId
+                        ? "Save changes to this lesson draft?"
+                        : "Create this lesson draft?",
+                      { title: lessonId ? "Save draft" : "Create draft" },
+                    ),
+                  ))
+                ) {
+                  return;
+                }
+                void saveLesson();
+              })();
+            }}
+          >
             Save draft
           </button>
           {lessonId && (
@@ -232,21 +260,52 @@ export function LessonEditorWorkspace({
                 type="button"
                 className="btn btn--primary"
                 onClick={() => {
-                  if (
-                    form.status === "published" &&
-                    !window.confirm("Update the live published lesson with these changes?")
-                  ) {
-                    return;
-                  }
-                  void action(`/api/admin/lessons/${lessonId}/publish`, "Published");
+                  void action(
+                    `/api/admin/lessons/${lessonId}/publish`,
+                    "Published",
+                    withAdminConfirm(
+                      form.status === "published"
+                        ? "Update the live published lesson with these changes?"
+                        : "Publish this lesson on the public site?",
+                      {
+                        title: form.status === "published" ? "Update published lesson" : "Publish lesson",
+                        confirmLabel: "Publish",
+                      },
+                    ),
+                  );
                 }}
               >
                 Publish
               </button>
-              <button type="button" className="btn" onClick={() => void action(`/api/admin/lessons/${lessonId}/archive`, "Archived")}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() =>
+                  void action(
+                    `/api/admin/lessons/${lessonId}/archive`,
+                    "Archived",
+                    withAdminConfirm(
+                      "Archive this lesson? It will be hidden from the public site.",
+                      { title: "Archive lesson", confirmLabel: "Archive" },
+                    ),
+                  )
+                }
+              >
                 Archive
               </button>
-              <button type="button" className="btn" onClick={() => void action(`/api/admin/lessons/${lessonId}/duplicate`, "Duplicated")}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() =>
+                  void action(
+                    `/api/admin/lessons/${lessonId}/duplicate`,
+                    "Duplicated",
+                    withAdminConfirm("Create a duplicate of this lesson?", {
+                      title: "Duplicate lesson",
+                    }),
+                  )
+                }
+              >
                 Duplicate
               </button>
             </>
@@ -506,16 +565,34 @@ export function LessonEditorWorkspace({
                       <button
                         type="button"
                         className="btn"
-                        onClick={() =>
-                          void fetch(`/api/admin/lessons/${lessonId}/restore-revision`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ revision_id: r.id }),
-                          }).then(() => {
+                        onClick={() => {
+                          void (async () => {
+                            if (
+                              !(await confirm(
+                                withAdminConfirm(
+                                  "Restore this revision? The current draft will be replaced.",
+                                  { title: "Restore revision", confirmLabel: "Restore" },
+                                ),
+                              ))
+                            ) {
+                              return;
+                            }
+                            const res = await fetch(
+                              `/api/admin/lessons/${lessonId}/restore-revision`,
+                              {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ revision_id: r.id }),
+                              },
+                            );
+                            if (!res.ok) {
+                              toast("Restore failed", "error");
+                              return;
+                            }
                             toast("Revision restored");
                             router.refresh();
-                          })
-                        }
+                          })();
+                        }}
                       >
                         Restore
                       </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CmsLink } from "@/components/admin/CmsLink";
 import { useCallback, useEffect, useState } from "react";
 
 type Asset = { id: string; file_name: string; public_url: string; source?: string };
@@ -61,15 +61,14 @@ export function MediaPickerModal({
         ) : error ? (
           <p className="admin-form-alert">{error}</p>
         ) : assets.length === 0 ? (
-          <div className="admin-empty">
-            <p style={{ margin: "0 0 12px" }}>No images found yet.</p>
-            <p style={{ margin: 0, fontSize: 13 }}>
-              Upload files on{" "}
-              <Link href="/admin/media" onClick={onClose}>
-                /admin/media
-              </Link>
-              , or use lesson thumbnails and site images from <code>/public/thumbs</code> after the latest
-              update.
+          <div className="admin-empty" style={{ display: "grid", gap: 8 }}>
+            <p style={{ margin: 0 }}>No images in your library yet.</p>
+            <p className="admin-table__muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+              Upload images on the{" "}
+              <CmsLink path="/media" onClick={onClose}>
+                Media
+              </CmsLink>{" "}
+              page, then return here to insert one.
             </p>
           </div>
         ) : (

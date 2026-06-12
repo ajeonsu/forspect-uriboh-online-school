@@ -1,18 +1,31 @@
 "use client";
 
+import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function GenreArchiveButton({ genreId, isActive }: { genreId: string; isActive: boolean }) {
   const router = useRouter();
+  const { push: toast } = useAdminToast();
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    const action = isActive ? "archive" : "activate";
     const msg = isActive
       ? `Archive genre "${genreId}"? It will be hidden from the public site.`
       : `Activate genre "${genreId}"?`;
-    if (!window.confirm(msg)) return;
+    if (
+      !(await confirm(
+        withAdminConfirm(msg, {
+          title: isActive ? "Archive category" : "Activate category",
+          tone: isActive ? "danger" : "default",
+          confirmLabel: isActive ? "Archive" : "Activate",
+        }),
+      ))
+    ) {
+      return;
+    }
     setBusy(true);
     const res = await fetch(`/api/admin/categories/${genreId}`, {
       method: "PUT",
@@ -21,9 +34,10 @@ export function GenreArchiveButton({ genreId, isActive }: { genreId: string; isA
     });
     setBusy(false);
     if (!res.ok) {
-      alert("Update failed");
+      toast("Update failed", "error");
       return;
     }
+    toast(isActive ? "Category archived" : "Category activated");
     router.refresh();
   }
 

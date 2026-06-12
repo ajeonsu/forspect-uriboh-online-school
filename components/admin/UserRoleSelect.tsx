@@ -1,5 +1,8 @@
 "use client";
 
+import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,11 +14,18 @@ export function UserRoleSelect({
   currentRole: string;
 }) {
   const router = useRouter();
+  const { push: toast } = useAdminToast();
   const [role, setRole] = useState(currentRole);
   const [msg, setMsg] = useState("");
 
   async function onChange(next: string) {
-    if (!window.confirm(`Change this user's role to ${next}?`)) return;
+    if (
+      !(await confirm(
+        withAdminConfirm(`Change this user's role to "${next}"?`, { title: "Change role" }),
+      ))
+    ) {
+      return;
+    }
     setMsg("");
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
@@ -24,10 +34,13 @@ export function UserRoleSelect({
     });
     const j = (await res.json()) as { error?: string };
     if (!res.ok) {
-      setMsg(j.error ?? "Update failed");
+      const err = j.error ?? "Update failed";
+      setMsg(err);
+      toast(err, "error");
       return;
     }
     setRole(next);
+    toast(`Role updated to ${next}`);
     router.refresh();
   }
 

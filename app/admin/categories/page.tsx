@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { CmsLink } from "@/components/admin/CmsLink";
 import { GenreArchiveButton } from "@/components/admin/GenreArchiveButton";
+import Link from "next/link";
 import { AdminCard, AdminPageHeader, AdminTableWrap, StatusBadge } from "@/components/admin/ui/AdminChrome";
 import { requireEditor } from "@/lib/auth";
 import { editorScope } from "@/lib/cms/editor-scope";
@@ -26,9 +27,9 @@ export default async function AdminCategoriesPage() {
             : "Your categories only. Use existing site categories when assigning lessons."
         }
         actions={
-          <Link href="/admin/categories/new" className="btn btn--primary">
+          <CmsLink path="/categories/new" className="btn btn--primary">
             New category
-          </Link>
+          </CmsLink>
         }
       />
 
@@ -59,9 +60,9 @@ export default async function AdminCategoriesPage() {
                   </td>
                   <td>
                     <span className="admin-table__actions">
-                      <Link href={`/admin/categories/${g.id}/edit`} className="admin-btn admin-btn--sm">
+                      <CmsLink path={`/categories/${g.id}/edit`} className="admin-btn admin-btn--sm">
                         Edit
-                      </Link>
+                      </CmsLink>
                       <Link
                         href={`/lessons/${g.id}`}
                         target="_blank"

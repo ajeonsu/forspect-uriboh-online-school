@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
+import { isWorkspacePath } from "@/lib/workspace/slug";
 
 function isAdminApi(pathname: string) {
   return pathname.startsWith("/api/admin");
@@ -8,6 +9,10 @@ function isAdminApi(pathname: string) {
 
 function isAdminPage(pathname: string) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+function isCmsPage(pathname: string) {
+  return isAdminPage(pathname) || isWorkspacePath(pathname);
 }
 
 function isAdminOnlyPage(pathname: string) {
@@ -24,13 +29,13 @@ function isAdminOnlyApi(pathname: string) {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const requestHeaders = new Headers(request.headers);
-  if (isAdminPage(pathname)) {
+  if (isCmsPage(pathname)) {
     requestHeaders.set("x-uriboh-admin-route", "1");
   }
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
-  const needsAdmin = isAdminPage(pathname) || isAdminApi(pathname);
-  if (!needsAdmin) return response;
+  const needsAuth = isCmsPage(pathname) || isAdminApi(pathname);
+  if (!needsAuth) return response;
 
   const config = getSupabasePublicConfig();
   if (!config) {
@@ -97,5 +102,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/:username/lessons/:path*",
+    "/:username/categories/:path*",
+    "/:username/seminars/:path*",
+    "/:username/analytics/:path*",
+    "/:username/media/:path*",
+    "/:username/genres/:path*",
+    "/:username",
+  ],
 };

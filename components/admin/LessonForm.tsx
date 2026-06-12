@@ -1,6 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
+import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
@@ -33,6 +38,9 @@ export function LessonForm({
   genreOptions: { id: string; label: string }[];
 }) {
   const router = useRouter();
+  const { push: toast } = useAdminToast();
+  const { confirm } = useConfirm();
+  const cmsBase = useCmsBase();
   const [form, setForm] = useState<LessonRow>(
     initial ?? {
       category_id: genreOptions[0]?.id ?? "ai-chatgpt",
@@ -55,6 +63,16 @@ export function LessonForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (
+      !(await confirm(
+        withAdminConfirm(
+          lessonId ? "Save changes to this lesson?" : "Create this lesson?",
+          { title: lessonId ? "Save lesson" : "Create lesson" },
+        ),
+      ))
+    ) {
+      return;
+    }
     setError("");
     const method = lessonId ? "PUT" : "POST";
     const url = lessonId ? `/api/admin/lessons/${lessonId}` : "/api/admin/lessons";
@@ -71,22 +89,36 @@ export function LessonForm({
     });
     if (!res.ok) {
       const j = (await res.json()) as { error?: string };
-      setError(j.error ?? "Save failed");
+      const msg = j.error ?? "Save failed";
+      setError(msg);
+      toast(msg, "error");
       return;
     }
-    router.push("/admin/lessons");
+    toast(lessonId ? "Lesson updated" : "Lesson created");
+    router.push(cmsHref(cmsBase, "/lessons"));
     router.refresh();
   }
 
   async function onDelete() {
     if (!lessonId) return;
-    if (!window.confirm("Permanently delete this lesson? This cannot be undone.")) return;
-    const res = await fetch(`/api/admin/lessons/${lessonId}`, { method: "DELETE" });
-    if (!res.ok) {
-      alert("Delete failed");
+    if (
+      !(await confirm(
+        withAdminConfirm("Permanently delete this lesson? This cannot be undone.", {
+          title: "Delete lesson",
+          tone: "danger",
+          confirmLabel: "Delete",
+        }),
+      ))
+    ) {
       return;
     }
-    router.push("/admin/lessons");
+    const res = await fetch(`/api/admin/lessons/${lessonId}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast("Delete failed", "error");
+      return;
+    }
+    toast("Lesson deleted");
+    router.push(cmsHref(cmsBase, "/lessons"));
     router.refresh();
   }
 
@@ -229,7 +261,7 @@ export function LessonForm({
 
       {lessonId && (
         <div>
-          <Link href={`/admin/lessons/${lessonId}/preview`} className="btn" target="_blank">
+          <Link href={cmsHref(cmsBase, `/lessons/${lessonId}/preview`)} className="btn" target="_blank">
             Open full page preview
           </Link>
         </div>

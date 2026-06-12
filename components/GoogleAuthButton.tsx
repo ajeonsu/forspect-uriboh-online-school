@@ -2,12 +2,14 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useAppToast } from "@/components/AppToast";
 import { buildOAuthCallbackUrl, safeNextPath } from "@/lib/auth-oauth";
 import { createClient } from "@/lib/supabase/client";
 
 export function GoogleAuthButton({ label }: { label: string }) {
   const searchParams = useSearchParams();
   const afterAuth = safeNextPath(searchParams.get("next"));
+  const { push: toast } = useAppToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,6 +29,7 @@ export function GoogleAuthButton({ label }: { label: string }) {
     setBusy(false);
     if (oauthError) {
       setError(oauthError.message);
+      toast(oauthError.message, "error");
     }
   }
 

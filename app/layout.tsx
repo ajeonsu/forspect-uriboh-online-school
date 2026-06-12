@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP } from "next/font/google";
 import { headers } from "next/headers";
+import { AppShell } from "@/components/AppShell";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
@@ -40,9 +41,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="google" content="notranslate" />
       </head>
       <body suppressHydrationWarning>
-        <SiteHeader adminRoute={adminRoute} />
-        <main className={adminRoute ? "site-main site-main--admin" : "site-main"}>{children}</main>
-        {!adminRoute && <SiteFooter />}
+        <AppShell>
+          <SiteHeader adminRoute={adminRoute} />
+          <main className={adminRoute ? "site-main site-main--admin" : "site-main"}>{children}</main>
+          {!adminRoute && <SiteFooter />}
+        </AppShell>
       </body>
     </html>
   );

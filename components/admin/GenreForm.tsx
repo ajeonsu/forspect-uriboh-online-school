@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
 import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { VisualContentEditor } from "@/components/admin/VisualContentEditor";
 
 const CATEGORY_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -63,6 +67,8 @@ export function GenreForm({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const { push: toast } = useAdminToast();
+  const { confirm } = useConfirm();
+  const cmsBase = useCmsBase();
   const alertRef = useRef<HTMLDivElement>(null);
 
   const parentChoices = useMemo(
@@ -93,6 +99,16 @@ export function GenreForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (
+      !(await confirm(
+        withAdminConfirm(
+          initial ? "Save changes to this category?" : "Create this category?",
+          { title: initial ? "Save category" : "Create category" },
+        ),
+      ))
+    ) {
+      return;
+    }
     setError("");
     const clientErr = validateClient();
     if (clientErr) {
@@ -117,7 +133,7 @@ export function GenreForm({
         return;
       }
       toast(initial ? "Category saved" : "Category created");
-      router.push("/admin/categories");
+      router.push(cmsHref(cmsBase, "/categories"));
       router.refresh();
     } catch {
       showError("Network error — check your connection and try again.");

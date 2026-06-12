@@ -1,3 +1,4 @@
+import { CmsLink } from "@/components/admin/CmsLink";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GenreForm } from "@/components/admin/GenreForm";
@@ -31,7 +32,7 @@ export default async function AdminCategoryEditPage({ params }: { params: Promis
         }
       />
       <p className="admin-table__muted" style={{ marginTop: -8, marginBottom: 8 }}>
-        <Link href="/admin/categories">← Categories</Link>
+        <CmsLink path="/categories">← Categories</CmsLink>
       </p>
       <AdminCard>
         <GenreForm initial={data} parentOptions={parentOptions} />

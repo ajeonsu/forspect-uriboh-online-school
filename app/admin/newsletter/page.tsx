@@ -16,11 +16,16 @@ export default async function AdminNewsletterPage() {
     );
   }
   const supabase = await createPrivilegedServerClient();
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("newsletter_subscribers")
     .select("id, email, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
+
+  const tableMissing =
+    error &&
+    (error.code === "42P01" ||
+      /newsletter_subscribers|does not exist|schema cache/i.test(error.message));
 
   return (
     <>
@@ -34,10 +39,30 @@ export default async function AdminNewsletterPage() {
       />
 
       <AdminCard>
-        {(rows ?? []).length === 0 ? (
-          <p className="admin-empty">
-            No subscribers yet. Apply migration <code>003_admin_cms.sql</code> if this table is missing.
+        {tableMissing ? (
+          <div className="admin-empty" style={{ display: "grid", gap: 8 }}>
+            <p>
+              The <code>newsletter_subscribers</code> table is not in your Supabase project yet.
+            </p>
+            <p className="admin-table__muted" style={{ margin: 0, fontSize: 13 }}>
+              In the Supabase SQL Editor, run{" "}
+              <code>supabase/migrations/003_admin_cms.sql</code> and{" "}
+              <code>004_admin_cms_rls.sql</code>, then refresh this page.
+            </p>
+          </div>
+        ) : error ? (
+          <p className="admin-empty" style={{ color: "#be123c" }}>
+            Could not load subscribers: {error.message}
           </p>
+        ) : (rows ?? []).length === 0 ? (
+          <div className="admin-empty" style={{ display: "grid", gap: 8 }}>
+            <p style={{ margin: 0 }}>No subscribers yet.</p>
+            <p className="admin-table__muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+              This list fills when emails are saved to <code>newsletter_subscribers</code>. The public
+              site does not include a newsletter signup form yet, so an empty list is normal after setup.
+              Use <strong>Export CSV</strong> once you have entries.
+            </p>
+          </div>
         ) : (
           <AdminTableWrap>
             <table className="admin-table">

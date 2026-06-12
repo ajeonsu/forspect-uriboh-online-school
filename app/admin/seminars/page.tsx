@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { CmsLink } from "@/components/admin/CmsLink";
 import { AdminSeminarFilters } from "@/components/admin/AdminSeminarFilters";
 import { AdminCard, AdminPageHeader, AdminTableWrap, StatusBadge } from "@/components/admin/ui/AdminChrome";
 import { requireEditor } from "@/lib/auth";
@@ -24,7 +24,15 @@ export default async function AdminSeminarsPage({
 
   return (
     <>
-      <AdminPageHeader title="Seminars" description="Review submissions, approve content, and manage webinar listings." />
+      <AdminPageHeader
+        title="Seminars"
+        description="Review submissions, approve content, and manage webinar listings."
+        actions={
+          <CmsLink path="/seminars/new" className="btn btn--primary">
+            New seminar
+          </CmsLink>
+        }
+      />
 
       <AdminCard>
         {scope.isAdmin ? <AdminSeminarFilters moderation={moderation} /> : null}
@@ -57,9 +65,9 @@ export default async function AdminSeminarsPage({
                         {s.start_at ? new Date(s.start_at).toLocaleString() : "—"}
                       </td>
                       <td>
-                        <Link href={`/admin/seminars/${s.id}`} className="admin-btn admin-btn--sm">
+                        <CmsLink path={`/seminars/${s.id}`} className="admin-btn admin-btn--sm">
                           Manage
-                        </Link>
+                        </CmsLink>
                       </td>
                     </tr>
                   ))}

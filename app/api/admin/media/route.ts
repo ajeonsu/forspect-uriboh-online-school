@@ -23,10 +23,7 @@ export async function GET(request: Request) {
   try {
     supabase = createAdminClient();
   } catch {
-    return jsonError(
-      "Media library requires SUPABASE_SERVICE_ROLE_KEY in .env.local. Restart the dev server after adding it.",
-      503,
-    );
+    return jsonError("Media library is temporarily unavailable.", 503);
   }
 
   try {

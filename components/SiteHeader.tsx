@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
+import { getManagementHref } from "@/lib/workspace/auth";
 import { LogoutButton } from "@/components/LogoutButton";
 
 export async function SiteHeader({ adminRoute = false }: { adminRoute?: boolean }) {
-  const user = await getSessionUser();
+  const [user, manageHref] = await Promise.all([getSessionUser(), getManagementHref()]);
 
   return (
     <header
@@ -36,7 +37,7 @@ export async function SiteHeader({ adminRoute = false }: { adminRoute?: boolean 
           <Link href="/seminars">セミナー / ウェビナー</Link>
           <Link href="/favorites">お気に入り</Link>
           <Link href="/faq">FAQ</Link>
-          {user ? <Link href="/admin">管理</Link> : null}
+          {user && manageHref ? <Link href={manageHref}>管理</Link> : null}
           {user ? (
             <span className="nav-logout-form">
               <LogoutButton />

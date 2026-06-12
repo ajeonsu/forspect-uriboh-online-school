@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
 import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm, type ConfirmRequest } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { TableSkeleton } from "@/components/skeletons/Skeletons";
 import { AdminCard, AdminPageHeader, AdminTableWrap, StatusBadge } from "@/components/admin/ui/AdminChrome";
 import { AdminLessonThumb } from "@/components/admin/AdminLessonThumb";
@@ -41,6 +45,8 @@ export function AdminLessonsManager({
   initial?: InitialList;
 }) {
   const { push: toast } = useAdminToast();
+  const { confirm } = useConfirm();
+  const cmsBase = useCmsBase();
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -95,7 +101,8 @@ export function AdminLessonsManager({
     void load();
   }, [load, q, categoryId, status, sort, page]);
 
-  async function quickAction(id: string, path: string, msg: string) {
+  async function quickAction(path: string, msg: string, confirmOpts: ConfirmRequest) {
+    if (!(await confirm(confirmOpts))) return;
     const res = await fetch(path, { method: "POST" });
     if (!res.ok) {
       toast("Action failed", "error");
@@ -106,6 +113,16 @@ export function AdminLessonsManager({
   }
 
   async function bulkArchive() {
+    if (
+      !(await confirm(
+        withAdminConfirm(`Archive ${selected.size} selected lesson(s)?`, {
+          title: "Archive lessons",
+          confirmLabel: "Archive",
+        }),
+      ))
+    ) {
+      return;
+    }
     for (const id of selected) {
       await fetch(`/api/admin/lessons/${id}/archive`, { method: "POST" });
     }
@@ -116,9 +133,16 @@ export function AdminLessonsManager({
 
   async function deleteLesson(id: string, title: string) {
     if (
-      !window.confirm(
-        `Permanently delete “${title}”? Prefer Archive to hide content without losing data.`,
-      )
+      !(await confirm(
+        withAdminConfirm(
+          `Permanently delete “${title}”? Prefer Archive to hide content without losing data.`,
+          {
+            title: "Delete lesson",
+            tone: "danger",
+            confirmLabel: "Delete",
+          },
+        ),
+      ))
     ) {
       return;
     }
@@ -139,7 +163,7 @@ export function AdminLessonsManager({
         title="Lessons"
         description="Search, filter, and manage the full lesson catalog and publishing workflow."
         actions={
-          <Link href="/admin/lessons/new" className="btn btn--primary">
+          <Link href={cmsHref(cmsBase, "/lessons/new")} className="btn btn--primary">
             New lesson
           </Link>
         }
@@ -261,7 +285,7 @@ export function AdminLessonsManager({
                       Edit
                     </Link>
                     <Link
-                      href={`/admin/lessons/${l.id}/preview`}
+                      href={cmsHref(cmsBase, `/lessons/${l.id}/preview`)}
                       prefetch={false}
                       target="_blank"
                       className="admin-btn admin-btn--sm admin-btn--ghost"
@@ -271,21 +295,45 @@ export function AdminLessonsManager({
                     <button
                       type="button"
                       className="admin-btn admin-btn--sm"
-                      onClick={() => void quickAction(l.id, `/api/admin/lessons/${l.id}/publish`, "Published")}
+                      onClick={() =>
+                        void quickAction(
+                          `/api/admin/lessons/${l.id}/publish`,
+                          "Published",
+                          withAdminConfirm(`Publish “${l.title}”?`, {
+                            title: "Publish lesson",
+                            confirmLabel: "Publish",
+                          }),
+                        )
+                      }
                     >
                       Publish
                     </button>
                     <button
                       type="button"
                       className="admin-btn admin-btn--sm admin-btn--ghost"
-                      onClick={() => void quickAction(l.id, `/api/admin/lessons/${l.id}/duplicate`, "Duplicated")}
+                      onClick={() =>
+                        void quickAction(
+                          `/api/admin/lessons/${l.id}/duplicate`,
+                          "Duplicated",
+                          withAdminConfirm(`Duplicate “${l.title}”?`, { title: "Duplicate lesson" }),
+                        )
+                      }
                     >
                       Duplicate
                     </button>
                     <button
                       type="button"
                       className="admin-btn admin-btn--sm admin-btn--ghost"
-                      onClick={() => void quickAction(l.id, `/api/admin/lessons/${l.id}/archive`, "Archived")}
+                      onClick={() =>
+                        void quickAction(
+                          `/api/admin/lessons/${l.id}/archive`,
+                          "Archived",
+                          withAdminConfirm(`Archive “${l.title}”?`, {
+                            title: "Archive lesson",
+                            confirmLabel: "Archive",
+                          }),
+                        )
+                      }
                     >
                       Archive
                     </button>

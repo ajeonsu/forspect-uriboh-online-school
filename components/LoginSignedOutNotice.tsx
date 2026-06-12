@@ -1,12 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-
+/** Logout confirmation is shown via flash toast (see LogoutButton). */
 export function LoginSignedOutNotice() {
-  const signedOut = useSearchParams().get("signedOut") === "1";
-  if (!signedOut) return null;
-
-  return (
-    <p style={{ marginBottom: 16, fontSize: 13, color: "#64748b" }}>ログアウトしました。</p>
-  );
+  return null;
 }

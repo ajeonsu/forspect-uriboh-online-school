@@ -1,5 +1,8 @@
 "use client";
 
+import { useAppToast } from "@/components/AppToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withPublicConfirm } from "@/lib/confirm-action";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,28 +14,44 @@ export function LessonDetailHeadActions({
   initialFavorited: boolean;
 }) {
   const router = useRouter();
+  const { push: toast } = useAppToast();
+  const { confirm } = useConfirm();
   const [fav, setFav] = useState(initialFavorited);
 
   async function toggleFavorite() {
     if (fav) {
+      if (!(await confirm(withPublicConfirm("お気に入りから削除しますか？")))) return;
       const res = await fetch(`/api/favorites/${lessonId}`, { method: "DELETE" });
       if (res.status === 401) {
+        toast("お気に入りの変更にはログインが必要です", "error");
         router.push("/login?next=" + encodeURIComponent(window.location.pathname));
         return;
       }
-      if (res.ok) setFav(false);
+      if (!res.ok) {
+        toast("お気に入りの更新に失敗しました", "error");
+        return;
+      }
+      setFav(false);
+      toast("お気に入りから削除しました");
       return;
     }
+    if (!(await confirm(withPublicConfirm("お気に入りに追加しますか？")))) return;
     const res = await fetch("/api/favorites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lessonId }),
     });
     if (res.status === 401) {
+      toast("お気に入りの変更にはログインが必要です", "error");
       router.push("/login?next=" + encodeURIComponent(window.location.pathname));
       return;
     }
-    if (res.ok) setFav(true);
+    if (!res.ok) {
+      toast("お気に入りの更新に失敗しました", "error");
+      return;
+    }
+    setFav(true);
+    toast("お気に入りに追加しました");
   }
 
   return (
@@ -58,25 +77,33 @@ export function LessonLikeActions({
   initialCount: number;
 }) {
   const router = useRouter();
+  const { push: toast } = useAppToast();
+  const { confirm } = useConfirm();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
-  const [msg, setMsg] = useState("");
 
   async function toggleLike() {
-    setMsg("");
+    if (
+      !(await confirm(
+        withPublicConfirm(liked ? "いいねを取り消しますか？" : "いいねしますか？"),
+      ))
+    ) {
+      return;
+    }
     const method = liked ? "DELETE" : "POST";
     const res = await fetch(`/api/lessons/${lessonId}/like`, { method });
     if (res.status === 401) {
-      setMsg("いいねするにはログインしてください");
+      toast("いいねするにはログインしてください", "error");
       router.push("/login?next=" + encodeURIComponent(window.location.pathname));
       return;
     }
     if (!res.ok) {
-      setMsg("いいねの更新に失敗しました");
+      toast("いいねの更新に失敗しました", "error");
       return;
     }
     setLiked(!liked);
     setCount((c) => (liked ? Math.max(0, c - 1) : c + 1));
+    toast(liked ? "いいねを取り消しました" : "いいねしました");
   }
 
   return (
@@ -89,9 +116,6 @@ export function LessonLikeActions({
         <span className="like-btn__icon">{liked ? "♥" : "♡"}</span>
         <span className="like-btn__count">{count.toLocaleString()}</span>
       </button>
-      {msg && (
-        <span style={{ fontSize: 12, color: "#E11D48", marginLeft: 8 }}>{msg}</span>
-      )}
     </div>
   );
 }

@@ -1,5 +1,10 @@
 "use client";
 
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
+import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -18,6 +23,9 @@ type CategoryRow = {
 
 export function CategoryForm({ initial }: { initial?: CategoryRow }) {
   const router = useRouter();
+  const { push: toast } = useAdminToast();
+  const { confirm } = useConfirm();
+  const cmsBase = useCmsBase();
   const [form, setForm] = useState<CategoryRow>(
     initial ?? {
       id: "",
@@ -36,6 +44,16 @@ export function CategoryForm({ initial }: { initial?: CategoryRow }) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (
+      !(await confirm(
+        withAdminConfirm(
+          initial ? "Save changes to this category?" : "Create this category?",
+          { title: initial ? "Save category" : "Create category" },
+        ),
+      ))
+    ) {
+      return;
+    }
     setError("");
     const parent = form.parent_id?.trim();
     const payload = {
@@ -54,10 +72,13 @@ export function CategoryForm({ initial }: { initial?: CategoryRow }) {
     });
     if (!res.ok) {
       const j = (await res.json()) as { error?: string };
-      setError(j.error ?? "Save failed");
+      const msg = j.error ?? "Save failed";
+      setError(msg);
+      toast(msg, "error");
       return;
     }
-    router.push("/admin/categories");
+    toast(initial ? "Category updated" : "Category created");
+    router.push(cmsHref(cmsBase, "/categories"));
     router.refresh();
   }
 

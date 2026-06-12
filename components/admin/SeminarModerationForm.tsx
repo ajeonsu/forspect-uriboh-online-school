@@ -1,35 +1,31 @@
 "use client";
 
+import { useCmsBase } from "@/components/admin/CmsWorkspaceProvider";
+import { cmsHref } from "@/lib/workspace/paths";
+import { useAdminToast } from "@/components/admin/cms/AdminToast";
+import { useConfirm } from "@/components/AppConfirm";
+import { withAdminConfirm } from "@/lib/confirm-action";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MediaUploadField } from "@/components/admin/MediaUploadField";
 import { VisualContentEditor } from "@/components/admin/VisualContentEditor";
+import type { SeminarRow } from "@/lib/admin/seminar-form";
 
-export type SeminarRow = {
-  id: string;
-  title: string;
-  description?: string | null;
-  host_name?: string | null;
-  category_tags?: string[] | null;
-  start_at?: string | null;
-  end_at?: string | null;
-  location?: string | null;
-  apply_url?: string | null;
-  thumbnail_path?: string | null;
-  thumbnail_url?: string | null;
-  video_url?: string | null;
-  status?: string;
-  moderation_status?: string;
-};
+export type { SeminarRow } from "@/lib/admin/seminar-form";
 
 export function SeminarModerationForm({
   initial,
   isAdmin = true,
+  isNew = false,
 }: {
   initial: SeminarRow;
   isAdmin?: boolean;
+  isNew?: boolean;
 }) {
   const router = useRouter();
+  const { push: toast } = useAdminToast();
+  const { confirm } = useConfirm();
+  const cmsBase = useCmsBase();
   const [form, setForm] = useState(initial);
   const [error, setError] = useState("");
 
@@ -42,18 +38,55 @@ export function SeminarModerationForm({
     });
     if (!res.ok) {
       const j = (await res.json()) as { error?: string };
-      setError(j.error ?? "Save failed");
+      const msg = j.error ?? "Save failed";
+      setError(msg);
+      toast(msg, "error");
       return false;
     }
     router.refresh();
     return true;
   }
 
+  async function createSeminar(body: Record<string, unknown>) {
+    setError("");
+    const res = await fetch("/api/admin/seminars", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = (await res.json()) as { seminar?: { id: string }; error?: string };
+    if (!res.ok) {
+      const msg = j.error ?? "Create failed";
+      setError(msg);
+      toast(msg, "error");
+      return false;
+    }
+    const id = j.seminar?.id;
+    if (!id) {
+      toast("Create failed", "error");
+      return false;
+    }
+    toast("Seminar created");
+    router.push(cmsHref(cmsBase, `/seminars/${id}`));
+    router.refresh();
+    return true;
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (
+      !(await confirm(
+        withAdminConfirm(
+          isNew ? "Create this seminar?" : "Save changes to this seminar?",
+          { title: isNew ? "Create seminar" : "Save seminar", confirmLabel: isNew ? "Create" : "Confirm" },
+        ),
+      ))
+    ) {
+      return;
+    }
     const tags = (form.category_tags ?? []).map((t) => String(t).trim()).filter(Boolean);
-    await save({
-      title: form.title,
+    const payload = {
+      title: form.title.trim(),
       description: form.description,
       host_name: form.host_name,
       category_tags: tags,
@@ -66,17 +99,43 @@ export function SeminarModerationForm({
       video_url: form.video_url || null,
       status: form.status,
       moderation_status: form.moderation_status,
-    });
+    };
+    if (!payload.title) {
+      const msg = "Title is required";
+      setError(msg);
+      toast(msg, "error");
+      return;
+    }
+    if (isNew) {
+      await createSeminar(payload);
+      return;
+    }
+    const ok = await save(payload);
+    if (ok) toast("Seminar saved");
   }
 
   async function moderate(status: "approved" | "rejected") {
-    if (!window.confirm(`${status === "approved" ? "Approve" : "Reject"} this seminar?`)) return;
+    if (
+      !(await confirm(
+        withAdminConfirm(`${status === "approved" ? "Approve" : "Reject"} this seminar?`, {
+          title: status === "approved" ? "Approve seminar" : "Reject seminar",
+          tone: status === "rejected" ? "danger" : "default",
+          confirmLabel: status === "approved" ? "Approve" : "Reject",
+        }),
+      ))
+    ) {
+      return;
+    }
     const ok = await save({ moderation_status: status });
-    if (ok) setForm({ ...form, moderation_status: status });
+    if (ok) {
+      setForm({ ...form, moderation_status: status });
+      toast(status === "approved" ? "Seminar approved" : "Seminar rejected");
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="admin-form">
+      {!isNew && (
       <p>
         Moderation: <strong>{form.moderation_status ?? "approved"}</strong>
         {isAdmin && form.moderation_status === "pending" && (
@@ -91,12 +150,13 @@ export function SeminarModerationForm({
           </>
         )}
       </p>
+      )}
       <div>
         <label>Title</label>
-        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
       </div>
       <VisualContentEditor
-        editorKey={initial.id}
+        editorKey={isNew ? "new-seminar" : initial.id}
         label="Description"
         initialHtml={
           initial.description?.includes("<")
@@ -172,7 +232,7 @@ export function SeminarModerationForm({
       </div>
       {error && <p style={{ color: "#E11D48" }}>{error}</p>}
       <button type="submit" className="btn btn--primary">
-        Save seminar
+        {isNew ? "Create seminar" : "Save seminar"}
       </button>
     </form>
   );

@@ -2,13 +2,16 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useAppToast } from "@/components/AppToast";
 import { AuthOAuthBlock } from "@/components/AuthOAuthBlock";
 import { safeNextPath } from "@/lib/auth-oauth";
+import { queueFlashToast } from "@/lib/flash-toast";
 import { createClient } from "@/lib/supabase/client";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { push: toast } = useAppToast();
   const afterLogin = safeNextPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,9 +37,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setLoading(false);
       if (signUpError) {
         setError(signUpError.message);
+        toast(signUpError.message, "error");
         return;
       }
       setLoading(false);
+      queueFlashToast("アカウントを作成しました");
       router.push("/");
       router.refresh();
       return;
@@ -46,9 +51,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     if (signInError) {
       setLoading(false);
       setError(signInError.message);
+      toast(signInError.message, "error");
       return;
     }
     setLoading(false);
+    queueFlashToast("ログインしました");
     router.push(mode === "login" ? afterLogin : "/");
     router.refresh();
   }

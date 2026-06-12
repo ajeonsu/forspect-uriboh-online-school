@@ -1,18 +1,13 @@
+import { recordSearchQuery } from "@/lib/analytics/record";
 import { jsonError, jsonOk } from "@/lib/api";
 import { LESSON_LIST_SELECT, SEMINAR_LIST_SELECT } from "@/lib/data/selects";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const q = new URL(request.url).searchParams.get("q")?.trim() ?? "";
   if (!q) return jsonOk({ lessons: [], seminars: [] });
 
-  try {
-    const admin = createAdminClient();
-    await admin.from("analytics_events").insert({ event_type: "search", query: q });
-  } catch {
-    /* analytics optional if migrations not applied */
-  }
+  await recordSearchQuery(q);
 
   const supabase = await createClient();
   const term = `%${q}%`;

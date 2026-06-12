@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CatNav } from "@/components/CatNav";
 import { LessonCard } from "@/components/LessonCard";
 import { getSessionProfile } from "@/lib/auth";
+import { recordSearchQuery } from "@/lib/analytics/record";
 import {
   getActiveCategories,
   getPublishedSeminars,
@@ -16,6 +17,7 @@ export default async function SearchPage({
 }) {
   const { q = "" } = await searchParams;
   const query = q.trim();
+  if (query) await recordSearchQuery(query);
   const [categories, lessons, seminars, profile] = await Promise.all([
     getActiveCategories(),
     query ? searchLessons(query) : Promise.resolve([]),
